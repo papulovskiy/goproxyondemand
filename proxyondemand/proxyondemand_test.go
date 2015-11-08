@@ -66,4 +66,33 @@ func TestSimpleProxyCreation(t *testing.T) {
 		t.Fatal("Port cannot be equal zero")
 	}
 
+	resp1, err1 := http.PostForm("http://localhost:8080/create", nil)
+	if resp1 == nil || err1 != nil {
+		t.Fatal("Cannot create a proxy")
+	}
+
+	defer resp1.Body.Close()
+	body1, err1 := ioutil.ReadAll(resp1.Body)
+	if err1 != nil {
+		t.Fatal("Cannot read response from server")
+	}
+
+	var port1 ProxyDescription
+	err1 = json.Unmarshal(body1, &port1)
+	if err1 != nil {
+		t.Fatal("Cannot parse response from server")
+	}
+
+	if port.Port == port1.Port {
+		t.Fatal("Ports cannot be the same")
+	}
+
+}
+
+func TestProxy(t *testing.T) {
+
+}
+
+func TestProxyLog(t *testing.T) {
+
 }

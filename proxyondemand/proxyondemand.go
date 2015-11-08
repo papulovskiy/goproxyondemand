@@ -9,7 +9,14 @@ import (
 	"fmt"
 	"html"
 	"log"
+	"sync"
 )
+
+var MinPort, MaxPort uint
+var Ports = struct {
+	sync.RWMutex
+	m map[uint]bool
+}{m: make(map[uint]bool)}
 
 func HandleIndex(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Hello, %q", html.EscapeString(r.URL.Path))
@@ -20,12 +27,30 @@ func Stop() {
 	os.Exit(0)
 }
 
+func GetNextAvailablePort() uint {
+	var p uint
+	for p = MinPort; p <= MaxPort; p++ {
+		// fmt.Printf("%+v %+v\n", p, Ports[p])
+		if !Ports.m[p] {
+			return p
+		}
+	}
+	return 0
+}
+
 func CreateProxy() (uint, error) {
-	log.Println("Proxy create request")
-	return 8081, nil
+	Ports.Lock()
+	Port := GetNextAvailablePort()
+	Ports.m[Port] = true
+	Ports.Unlock()
+	log.Printf("Proxy create request, port: %d", Port)
+	return Port, nil
 }
 
 func Start(bind string) {
+	// TODO: implement command line arguments via flag
+	MinPort = 40000
+	MaxPort = 45000
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		HandleIndex(w, r)
 	})
