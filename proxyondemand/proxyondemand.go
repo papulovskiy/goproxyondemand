@@ -20,6 +20,11 @@ func Stop() {
 	os.Exit(0)
 }
 
+func CreateProxy() (uint, error) {
+	log.Println("Proxy create request")
+	return 8081, nil
+}
+
 func Start(bind string) {
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		HandleIndex(w, r)
@@ -27,5 +32,17 @@ func Start(bind string) {
 	http.HandleFunc("/stop", func(w http.ResponseWriter, r *http.Request) {
 		Stop()
 	})
+
+	http.HandleFunc("/create", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "POST":
+			port, _ := CreateProxy()
+			w.Write([]byte(fmt.Sprintf("{\"port\":%d}", port)))
+		default:
+			log.Println("Create proxy non-POST request")
+		}
+
+	})
+
 	log.Fatal(http.ListenAndServe(bind, nil))
 }
