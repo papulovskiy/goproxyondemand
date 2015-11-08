@@ -1,7 +1,7 @@
 package proxyondemand
 
 import (
-	// "github.com/elazarl/goproxy"
+	"github.com/elazarl/goproxy"
 	"net/http"
 	// "net/url"
 	"os"
@@ -44,6 +44,9 @@ func CreateProxy() (uint, error) {
 	Ports.m[Port] = true
 	Ports.Unlock()
 	log.Printf("Proxy create request, port: %d", Port)
+	proxy := goproxy.NewProxyHttpServer()
+	proxy.Verbose = true
+	go http.ListenAndServe(fmt.Sprintf(":%d", Port), proxy)
 	return Port, nil
 }
 

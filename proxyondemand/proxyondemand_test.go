@@ -2,10 +2,11 @@ package proxyondemand_test
 
 import (
 	"encoding/json"
-	// "fmt"
+	"fmt"
 	"github.com/papulovskiy/goproxyondemand/proxyondemand"
 	"io/ioutil"
 	"net/http"
+	"net/url"
 	"testing"
 )
 
@@ -44,7 +45,7 @@ func TestSimpleStartStop(t *testing.T) {
 	// }
 }
 
-func TestSimpleProxyCreation(t *testing.T) {
+func GetNextProxy(t *testing.T) ProxyDescription {
 	resp, err := http.PostForm("http://localhost:8080/create", nil)
 	if resp == nil || err != nil {
 		t.Fatal("Cannot create a proxy")
@@ -66,31 +67,30 @@ func TestSimpleProxyCreation(t *testing.T) {
 		t.Fatal("Port cannot be equal zero")
 	}
 
-	resp1, err1 := http.PostForm("http://localhost:8080/create", nil)
-	if resp1 == nil || err1 != nil {
-		t.Fatal("Cannot create a proxy")
-	}
+	return port
+}
 
-	defer resp1.Body.Close()
-	body1, err1 := ioutil.ReadAll(resp1.Body)
-	if err1 != nil {
-		t.Fatal("Cannot read response from server")
-	}
+func TestSimpleProxyCreation(t *testing.T) {
+	port := GetNextProxy(t)
 
-	var port1 ProxyDescription
-	err1 = json.Unmarshal(body1, &port1)
-	if err1 != nil {
-		t.Fatal("Cannot parse response from server")
-	}
+	port1 := GetNextProxy(t)
 
 	if port.Port == port1.Port {
 		t.Fatal("Ports cannot be the same")
 	}
-
 }
 
 func TestProxy(t *testing.T) {
+	port := GetNextProxy(t)
 
+	proxyUrl, err := url.Parse(fmt.Sprintf("http://%s:%d", "localhost", port.Port))
+	myClient := &http.Client{Transport: &http.Transport{Proxy: http.ProxyURL(proxyUrl)}}
+	host := "ya.ru"
+	resp, err := myClient.Get("http://" + host)
+	// fmt.Printf("%+v %+v\n", resp, err)
+	if err != nil || resp.StatusCode > 399 {
+		t.Fatal(fmt.Sprintf("Cannot GET %s via proxy at %d", host, port.Port))
+	}
 }
 
 func TestProxyLog(t *testing.T) {
